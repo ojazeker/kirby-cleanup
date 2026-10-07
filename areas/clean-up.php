@@ -39,6 +39,18 @@ return function ($kirby) {
                     ];
                 },
             ],
+            [
+                'pattern' => 'clean-up/orphans',
+                'action' => function () use ($guard) {
+                    $guard();
+
+                    return [
+                        'component' => 'k-clean-up-view',
+                        'title' => 'Orphaned files',
+                        'props' => ['active' => 'orphans'],
+                    ];
+                },
+            ],
         ],
     ];
 };

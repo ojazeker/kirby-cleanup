@@ -9,6 +9,7 @@ namespace Kirby\Exception {
 namespace {
     require_once __DIR__ . '/../lib/ResizeService.php';
     require_once __DIR__ . '/../lib/ContentCleanupService.php';
+    require_once __DIR__ . '/../lib/OrphanedFileService.php';
 
     class PanelTestFile
     {
@@ -60,10 +61,10 @@ namespace {
     }
 
     $adminViews = $area($admin)['views'];
-    if (count($adminViews) !== 2 || $adminViews[1]['pattern'] !== 'clean-up/content') {
+    if (count($adminViews) !== 3 || $adminViews[1]['pattern'] !== 'clean-up/content' || $adminViews[2]['pattern'] !== 'clean-up/orphans') {
         throw new \RuntimeException('Clean Up tab routes are incorrect');
     }
-    if ($adminViews[0]['action']()['props']['active'] !== 'images' || $adminViews[1]['action']()['props']['active'] !== 'content') {
+    if ($adminViews[0]['action']()['props']['active'] !== 'images' || $adminViews[1]['action']()['props']['active'] !== 'content' || $adminViews[2]['action']()['props']['active'] !== 'orphans') {
         throw new \RuntimeException('Clean Up tabs do not select the matching view');
     }
 
@@ -72,7 +73,7 @@ namespace {
         public function __construct(private $kirby) {}
         public function kirby() { return $this->kirby; }
         public function requestQuery(string $key) { return null; }
-        public function requestBody(): array { return ['offset' => 0, 'limit' => 1]; }
+        public function requestBody(): array { return ['offset' => 0, 'limit' => 1, 'ids' => []]; }
     };
     $preview = $routes[0]['action']->call($context);
     if (array_column($preview['pending'], 'id') !== ['image.jpg']) {
@@ -89,6 +90,14 @@ namespace {
     $contentClean = $routes[3]['action']->call($context);
     if ($contentClean !== ['cleaned' => [], 'errors' => []]) {
         throw new \RuntimeException('Admin content cleanup did not return a result');
+    }
+    $orphanPreview = $routes[4]['action']->call($context);
+    if ($orphanPreview !== ['pending' => [], 'errors' => []]) {
+        throw new \RuntimeException('Admin orphan preview did not return a scan result');
+    }
+    $orphanDelete = $routes[5]['action']->call($context);
+    if ($orphanDelete !== ['deleted' => [], 'skipped' => [], 'errors' => []]) {
+        throw new \RuntimeException('Admin orphan deletion did not return a result');
     }
 
     $blocked = new class($guest) {

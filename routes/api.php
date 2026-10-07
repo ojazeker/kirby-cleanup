@@ -2,6 +2,7 @@
 
 use Allsizes\BatchResize\ResizeService;
 use Allsizes\BatchResize\ContentCleanupService;
+use Allsizes\BatchResize\OrphanedFileService;
 use Kirby\Exception\PermissionException;
 
 $authorize = static function ($context): void {
@@ -28,6 +29,14 @@ $contentServiceFor = static function ($context) use ($authorize): ContentCleanup
     ini_set('memory_limit', '512M');
 
     return new ContentCleanupService($context->kirby());
+};
+
+$orphanedFileServiceFor = static function ($context) use ($authorize): OrphanedFileService {
+    $authorize($context);
+    set_time_limit(0);
+    ini_set('memory_limit', '512M');
+
+    return new OrphanedFileService($context->kirby());
 };
 
 return [
@@ -70,6 +79,26 @@ return [
             }
 
             return $contentServiceFor($this)->clean($body['ignore'] ?? null);
+        },
+    ],
+    [
+        'pattern' => 'clean-up/orphaned-files-preview',
+        'method' => 'GET',
+        'action' => function () use ($orphanedFileServiceFor) {
+            return $orphanedFileServiceFor($this)->scan();
+        },
+    ],
+    [
+        'pattern' => 'clean-up/orphaned-files-delete',
+        'method' => 'POST',
+        'action' => function () use ($orphanedFileServiceFor) {
+            $service = $orphanedFileServiceFor($this);
+            $body = $this->requestBody();
+            if (!is_array($body) || !isset($body['ids']) || !is_array($body['ids'])) {
+                throw new InvalidArgumentException('Invalid orphaned file request.');
+            }
+
+            return $service->delete($body['ids']);
         },
     ],
 ];

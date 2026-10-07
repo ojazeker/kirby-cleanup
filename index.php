@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/lib/ResizeService.php';
 require_once __DIR__ . '/lib/ContentCleanupService.php';
+require_once __DIR__ . '/lib/OrphanedFileService.php';
 
 Kirby::plugin('allsizes/batch-resize', [
     'areas' => [
