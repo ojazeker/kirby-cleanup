@@ -8,6 +8,7 @@ namespace Kirby\Exception {
 
 namespace {
     require_once __DIR__ . '/../lib/ResizeService.php';
+    require_once __DIR__ . '/../lib/ContentCleanupService.php';
 
     class PanelTestFile
     {
@@ -38,6 +39,9 @@ namespace {
         public function __construct(private $site) {}
         public function site() { return $this->site; }
         public function user(): object { return new class { public function isAdmin(): bool { return true; } }; }
+        public function models(): array { return []; }
+        public function multilang(): bool { return false; }
+        public function languages(): array { return []; }
     };
     $guest = new class($site) {
         public function __construct(private $site) {}
@@ -45,7 +49,7 @@ namespace {
         public function user() { return null; }
     };
 
-    $area = require __DIR__ . '/../config/area.php';
+    $area = require __DIR__ . '/../areas/clean-up.php';
     if ($area($admin)['menu'] !== true || $area($guest)['menu'] !== false) {
         throw new \RuntimeException('Clean Up menu visibility is incorrect');
     }
@@ -55,7 +59,15 @@ namespace {
     } catch (\Kirby\Exception\PermissionException $error) {
     }
 
-    $routes = require __DIR__ . '/../config/api.php';
+    $adminViews = $area($admin)['views'];
+    if (count($adminViews) !== 2 || $adminViews[1]['pattern'] !== 'clean-up/content') {
+        throw new \RuntimeException('Clean Up tab routes are incorrect');
+    }
+    if ($adminViews[0]['action']()['props']['active'] !== 'images' || $adminViews[1]['action']()['props']['active'] !== 'content') {
+        throw new \RuntimeException('Clean Up tabs do not select the matching view');
+    }
+
+    $routes = require __DIR__ . '/../routes/api.php';
     $context = new class($admin) {
         public function __construct(private $kirby) {}
         public function kirby() { return $this->kirby; }
@@ -66,9 +78,17 @@ namespace {
     if (array_column($preview['pending'], 'id') !== ['image.jpg']) {
         throw new \RuntimeException('Admin preview did not return the pending image');
     }
+    $contentPreview = $routes[2]['action']->call($context);
+    if ($contentPreview !== ['pending' => [], 'errors' => []]) {
+        throw new \RuntimeException('Admin content preview did not return a scan result');
+    }
     $batch = $routes[1]['action']->call($context);
     if (array_column($batch['processed'], 'id') !== ['image.jpg'] || $batch['nextOffset'] !== null || $file->manipulations !== [['width' => 800]]) {
         throw new \RuntimeException('Admin batch did not process the pending image');
+    }
+    $contentClean = $routes[3]['action']->call($context);
+    if ($contentClean !== ['cleaned' => [], 'errors' => []]) {
+        throw new \RuntimeException('Admin content cleanup did not return a result');
     }
 
     $blocked = new class($guest) {
