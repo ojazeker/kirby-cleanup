@@ -29,7 +29,7 @@ class ContentCleanupTestBlueprint
 {
     public function fields(): array
     {
-        return ['title' => [], 'slug' => [], 'email' => []];
+        return ['title' => [], 'slug' => [], 'email' => [], 'featuredImage' => []];
     }
 }
 
@@ -68,7 +68,7 @@ class ContentCleanupTestLanguage
 }
 
 $pageVersion = new ContentCleanupTestVersion([
-    'en' => ['title' => 'Page', 'uuid' => 'abc', 'legacy' => 'remove'],
+    'en' => ['title' => 'Page', 'uuid' => 'abc', 'featuredimage' => 'cover.jpg', 'legacy' => 'remove'],
     'nl' => ['title' => 'Pagina', 'slug' => 'pagina', 'legacy' => 'verwijder'],
 ]);
 $failedVersion = new ContentCleanupTestVersion([
@@ -113,7 +113,7 @@ $result = $service->clean();
 if (count($result['cleaned']) !== 2 || count($result['errors']) !== 1) {
     throw new RuntimeException('Cleanup should report successful writes and isolated failures.');
 }
-if (isset($pageVersion->content['en']['legacy']) || $pageVersion->content['en']['uuid'] !== 'abc') {
+if (isset($pageVersion->content['en']['legacy']) || $pageVersion->content['en']['uuid'] !== 'abc' || $pageVersion->content['en']['featuredimage'] !== 'cover.jpg') {
     throw new RuntimeException('Cleanup should remove undefined fields while preserving ignored fields.');
 }
 if ($result['errors'][0]['id'] !== 'editor' || $result['errors'][0]['error'] !== 'Write failed') {

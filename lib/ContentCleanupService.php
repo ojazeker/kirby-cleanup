@@ -64,7 +64,7 @@ class ContentCleanupService
                         continue;
                     }
 
-                    $blueprintFields = array_keys($model->blueprint()->fields());
+                    $blueprintFields = array_map('strtolower', array_keys($model->blueprint()->fields()));
                     $fields = array_values(array_diff(array_keys($content), $blueprintFields, $ignore));
                     if ($fields === []) {
                         continue;
